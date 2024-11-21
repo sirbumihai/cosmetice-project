@@ -16,6 +16,7 @@ app.get('/', (req, res) => {
     console.log("req.body")
 })
 
-app.listen(3000, () => {
+const PORT = process.env.PORT;
+app.listen(PORT, () => {
     console.log("Server is Running")
 })
