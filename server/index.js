@@ -11,7 +11,7 @@ app.use(cors({
     methods: ["GET", "POST", "PUT", "DELETE"]
 }))
 app.use(express.json())
-app.use('/auth', authRouter) 
+app.use('/auth', authRouter)
 app.get('/', (req, res) => {
     console.log("req.body")
 })
