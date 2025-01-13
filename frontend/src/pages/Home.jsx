@@ -91,6 +91,18 @@ const Home = () => {
                 Dashboard
               </Link>
               <Link
+                to="/simple-queries"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                SimpleQueries
+              </Link>
+              <Link
+                to="/complex-queries"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                ComplexQueries
+              </Link>
+              <Link
                 to="/login"
                 className="text-gray-700 hover:text-blue-500 mx-4"
               >

@@ -49,8 +49,9 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: 'Wrong password' });
     }
-    const token = jwt.sign({ id: rows[0].client_id }, process.env.JWT_SECRET, { expiresIn: '3h' });
+    const token = jwt.sign({ id: rows[0].client_id}, process.env.JWT_SECRET, { expiresIn: '3h' });
 
+    console.log("Generated Token:", token); // Verificăm structura token-ului
     return res.status(200).json({ token });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -90,7 +91,7 @@ router.get('/home', verifyToken, async (req, res) => {
 });
 
 router.route('/dashboard/:table')
-  .get(async (req, res) => {
+  .get( async (req, res) => {
     const { table } = req.params;
     try {
       const db = await connectToDatabase();
@@ -193,7 +194,7 @@ router.route('/dashboard/:table')
     try {
       const db = await connectToDatabase();
       const [rows] = await db.query(`
-        SELECT produse.produs_id, produse.nume_produs, produse.pret, categorii.nume_categorie
+        SELECT produse.produs_id, produse.poza, produse.nume_produs, produse.pret, categorii.nume_categorie
         FROM produse
         JOIN categorii ON produse.categorie_id = categorii.categorie_id;
       `);
@@ -264,7 +265,7 @@ router.route('/dashboard/:table')
   });
 
 // Interogare 1: Lista produselor și categoriile lor
-router.get('/queries/products-categories-simple', async (req, res) => {
+router.get('/queries/products-categories', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
@@ -278,7 +279,162 @@ router.get('/queries/products-categories-simple', async (req, res) => {
   }
 });
 
-// Interogare 2: Comenzi plasate de clienți într-un anumit an
+// Interogare 2: Lista produselor și furnizorii acestora
+router.get('/queries/products-suppliers', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT produse.nume_produs, furnizori.nume_furnizor
+      FROM produse
+      JOIN furnizori ON produse.furnizori_id = furnizori.furnizori_id;
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 3: Lista clienților și comenzile lor
+router.get('/queries/clients-orders', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT client.username, comenzi.comanda_id, comenzi.total
+      FROM client
+      JOIN comenzi ON client.client_id = comenzi.client_id;
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 4: Produse și ingredientele lor
+router.get('/queries/products-ingredients', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT produse.nume_produs, ingrediente.nume_ingredient
+      FROM produse
+      JOIN produseingrediente ON produse.produs_id = produseingrediente.produs_id
+      JOIN ingrediente ON produseingrediente.ingredient_id = ingrediente.ingredient_id;
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 5: Clienții care au plasat comenzi în luna curentă
+router.get('/queries/clients-current-month-orders', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT client.username, comenzi.comanda_id, comenzi.data_comanda
+      FROM client
+      JOIN comenzi ON client.client_id = comenzi.client_id
+      WHERE MONTH(comenzi.data_comanda) = MONTH(CURRENT_DATE())
+      AND YEAR(comenzi.data_comanda) = YEAR(CURRENT_DATE());
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 6: Produse dintr-o anumită categorie
+router.get('/queries/products-by-category', async (req, res) => {
+  const { category } = req.query;
+  if (!category) {
+    return res.status(400).json({ message: 'Missing category parameter' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT produse.nume_produs, produse.pret
+      FROM produse
+      JOIN categorii ON produse.categorie_id = categorii.categorie_id
+      WHERE categorii.nume_categorie = ?;
+    `, [category]);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 7: Cele mai scumpe produse din fiecare categorie
+router.get('/queries/most-expensive-products', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT produse.nume_produs, categorii.nume_categorie, produse.pret
+      FROM produse
+      JOIN categorii ON produse.categorie_id = categorii.categorie_id
+      WHERE produse.pret = (
+        SELECT MAX(p2.pret)
+        FROM produse p2
+        WHERE p2.categorie_id = produse.categorie_id
+      );
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 8: Top 5 clienți după valoarea comenzilor totale
+router.get('/queries/top-clients', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT client.username, SUM(comenzi.total) AS total_comenzi
+      FROM client
+      JOIN comenzi ON client.client_id = comenzi.client_id
+      GROUP BY client.username
+      ORDER BY total_comenzi DESC
+      LIMIT 5;
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 9: Produse care nu au fost comandate niciodată
+router.get('/queries/unsold-products', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT produse.nume_produs
+      FROM produse
+      LEFT JOIN produsecomenzi ON produse.produs_id = produsecomenzi.produs_id
+      WHERE produsecomenzi.produs_id IS NULL;
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Interogare 10: Venit total pe lună
+router.get('/queries/monthly-revenue', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT MONTH(comenzi.data_comanda) AS luna, YEAR(comenzi.data_comanda) AS an, SUM(comenzi.total) AS venit_total
+      FROM comenzi
+      GROUP BY YEAR(comenzi.data_comanda), MONTH(comenzi.data_comanda)
+      ORDER BY an DESC, luna DESC;
+    `);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// Interogare 11: Comenzi plasate de clienți într-un anumit an
 router.get('/queries/orders-by-year', async (req, res) => {
   const { year } = req.query; // Parametru din query string
   if (!year) {
@@ -299,81 +455,168 @@ router.get('/queries/orders-by-year', async (req, res) => {
   }
 });
 
-// Interogare 3: Lista produselor și furnizorii acestora
-router.get('/queries/products-suppliers-simple', async (req, res) => {
+// 1. Veniturile generate de clienții fideli
+router.get('/queries/loyal-customers-revenue', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT produse.nume_produs, furnizori.nume_furnizor
-      FROM produse
-      JOIN furnizori ON produse.furnizori_id = furnizori.furnizori_id;
+      SELECT cl.username, SUM(co.total) AS total_venituri
+      FROM client cl
+      JOIN comenzi co ON cl.client_id = co.client_id
+      WHERE cl.client_id IN (
+          SELECT client_id
+          FROM comenzi
+          GROUP BY client_id
+          HAVING COUNT(comanda_id) > 1
+      )
+      GROUP BY cl.username
+      ORDER BY total_venituri DESC;
     `);
     return res.status(200).json(rows);
   } catch (err) {
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-// Interogare 1: Produsele cu cel mai mare stoc din fiecare categorie
-router.get('/queries/top-stock-per-category', async (req, res) => {
+
+// 2. Produsele cel mai frecvent cumpărate împreună cu un anumit produs
+router.get('/queries/products-bought-together', async (req, res) => {
+  const { productName } = req.query;
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT p.nume_produs, c.nume_categorie, p.stoc
+      SELECT p.nume_produs, COUNT(pc2.produs_id) AS cumparari_impreuna
+      FROM produsecomenzi pc1
+      JOIN produsecomenzi pc2 ON pc1.comanda_id = pc2.comanda_id AND pc1.produs_id != pc2.produs_id
+      JOIN produse p ON pc2.produs_id = p.produs_id
+      WHERE pc1.produs_id = (
+          SELECT produs_id
+          FROM produse
+          WHERE nume_produs = ?
+      )
+      GROUP BY p.nume_produs
+      ORDER BY cumparari_impreuna DESC
+      LIMIT 10;
+    `, [productName]);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// 3. Produse care au stoc scăzut dar sunt foarte populare
+router.get('/queries/popular-low-stock', async (req, res) => {
+  const { stockLimit } = req.query;
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT p.nume_produs, p.stoc, COUNT(pc.produs_id) AS numar_cumparari
       FROM produse p
-      JOIN categorii c ON p.categorie_id = c.categorie_id
-      WHERE p.stoc = (
-        SELECT MAX(stoc)
-        FROM produse
-        WHERE categorie_id = p.categorie_id
-      );
-    `);
+      JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
+      WHERE p.stoc < ?
+      GROUP BY p.produs_id
+      ORDER BY numar_cumparari DESC
+      LIMIT 10;
+    `, [stockLimit]);
     return res.status(200).json(rows);
   } catch (err) {
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// Interogare 2: Suma totală a comenzilor pe categorii într-o anumită perioadă
-router.get('/queries/total-sales-by-category', async (req, res) => {
-  const { startDate, endDate } = req.query; // Parametri pentru perioada
-
-  if (!startDate || !endDate) {
-    return res.status(400).json({ message: 'Missing startDate or endDate parameter' });
-  }
-
+// 4. Produse dintr-o categorie cu cel mai mare discount oferit
+router.get('/queries/top-discount-products', async (req, res) => {
+  const { categoryName } = req.query;
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT c.nume_categorie, SUM(pc.cantitate * pc.pret_unitar) AS suma_totala
-      FROM produsecomenzi pc
-      JOIN produse p ON pc.produs_id = p.produs_id
+      SELECT p.nume_produs, MAX(pc.discount) AS discount_maxim
+      FROM produse p
+      JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
       JOIN categorii c ON p.categorie_id = c.categorie_id
-      JOIN comenzi co ON pc.comanda_id = co.comanda_id
-      WHERE co.data_comanda BETWEEN ? AND ?
-      GROUP BY c.nume_categorie
-      HAVING suma_totala > 10;
-    `, [startDate, endDate]);
-    return res.status(200).json(rows);
-  } catch (err) {
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Interogare 3: Clienții cu cele mai mari comenzi plasate
-router.get('/queries/top-clients', async (req, res) => {
-  try {
-    const db = await connectToDatabase();
-    const [rows] = await db.query(`
-      SELECT client.username, MAX(comenzi.total) AS comanda_maxima
-      FROM comenzi
-      JOIN client ON comenzi.client_id = client.client_id
-      GROUP BY client.username
-      ORDER BY comanda_maxima DESC
+      WHERE c.nume_categorie = ?
+      GROUP BY p.nume_produs
+      ORDER BY discount_maxim DESC
       LIMIT 5;
+    `, [categoryName]);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// 5. Cele mai populare produse bazate pe categorii selectate
+router.get('/queries/top-products-by-category', async (req, res) => {
+  const { categoryName } = req.query;
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT p.nume_produs, COUNT(pc.comanda_id) AS numar_comenzi
+      FROM produse p
+      JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
+      WHERE pc.comanda_id IN (
+          SELECT DISTINCT c.comanda_id
+          FROM comenzi c
+          JOIN produsecomenzi pc2 ON c.comanda_id = pc2.comanda_id
+          JOIN produse p2 ON pc2.produs_id = p2.produs_id
+          JOIN categorii cat ON p2.categorie_id = cat.categorie_id
+          WHERE cat.nume_categorie = ?
+      )
+      GROUP BY p.nume_produs
+      ORDER BY numar_comenzi DESC
+      LIMIT 5;
+    `, [categoryName]);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// 6. Produse aflate în stoc limitat dar frecvent comandate
+router.get('/queries/low-stock-frequent', async (req, res) => {
+  const { stockLimit } = req.query;
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT p.nume_produs, COUNT(pc.comanda_id) AS numar_comenzi
+      FROM produse p
+      JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
+      WHERE p.stoc < ?
+      GROUP BY p.nume_produs
+      HAVING numar_comenzi > (
+          SELECT AVG(comenzi_count)
+          FROM (
+              SELECT COUNT(pc2.comanda_id) AS comenzi_count
+              FROM produse p2
+              JOIN produsecomenzi pc2 ON p2.produs_id = pc2.produs_id
+              GROUP BY p2.produs_id
+          ) AS comenzi_medii
+      )
+      ORDER BY numar_comenzi DESC;
+    `, [stockLimit]);
+    return res.status(200).json(rows);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// 7. Categorii cu produse peste media globală a prețurilor
+router.get('/queries/categories-above-average', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const [rows] = await db.query(`
+      SELECT c.nume_categorie, MAX(p.pret) AS pret_maxim
+      FROM categorii c
+      JOIN produse p ON c.categorie_id = p.categorie_id
+      WHERE p.pret > (
+          SELECT AVG(pret)
+          FROM produse
+      )
+      GROUP BY c.nume_categorie
+      ORDER BY pret_maxim DESC;
     `);
     return res.status(200).json(rows);
   } catch (err) {
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 

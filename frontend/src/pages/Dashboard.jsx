@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchData, insertData, updateData, deleteData } from "../utils/api";
+import { Link } from "react-router-dom";
 import TableComponent from "../components/TableComponent";
 
 // Adăugăm un id implicit pentru fiecare obiect din data dacă lipsește
@@ -55,8 +56,53 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-3xl font-bold text-blue-500 mb-4">Dashboard</h1>
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-md w-full fixed top-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <Link to="/" className="text-xl font-bold text-blue-500">
+                Cosmetice
+              </Link>
+            </div>
+            <div className="flex items-center">
+              <Link
+                to="/dashboard"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/simple-queries"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                SimpleQueries
+              </Link>
+              <Link
+                to="/complex-queries"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                ComplexQueries
+              </Link>
+              <Link
+                to="/login"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                Register
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+      <h1 className="text-3xl font-bold text-blue-500 mb-4 mt-8 py-10">
+        Dashboard
+      </h1>
       <TableComponent
         title="Clienti"
         data={client}
