@@ -1,11 +1,18 @@
 import { useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import QueryResult from "../components/QueryResult";
 import MonthlyRevenueChart from "../components/MonthlyRevenueChart";
 import ProductCard from "../components/ProductCard";
+import OrdersByYearChart from "../components/OrdersByYearChart";
+import TopClientsChart from "../components/TopClientsChart";
+import { useCart } from "../components/cartContext";
+import { useEffect } from "react";
 
 const SimpleQueriesPage = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const { addToCart } = useCart();
   const [year, setYear] = useState("");
   const [category, setCategory] = useState("");
   const [ordersByYear, setOrdersByYear] = useState([]);
@@ -19,6 +26,31 @@ const SimpleQueriesPage = () => {
   const [topClients, setTopClients] = useState([]);
   const [unsoldProducts, setUnsoldProducts] = useState([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState([]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:3000/auth/simple-queries",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.status === 200) {
+          setUser(response.data.user);
+        } else {
+          navigate("/login");
+        }
+      } catch (err) {
+        navigate("/login");
+        console.log(err);
+      }
+    };
+    fetchUser();
+  }, [navigate]);
   // Fetch orders by year
   const fetchOrdersByYear = async () => {
     try {
@@ -37,6 +69,7 @@ const SimpleQueriesPage = () => {
       const response = await axios.get(
         `http://localhost:3000/auth/queries/products-categories`
       );
+      console.log(response.data);
       setProductsCategories(response.data);
     } catch (err) {
       console.error("Error fetching products and categories:", err);
@@ -48,6 +81,7 @@ const SimpleQueriesPage = () => {
       const response = await axios.get(
         `http://localhost:3000/auth/queries/products-suppliers`
       );
+      console.log(response.data);
       setProductsSuppliers(response.data);
     } catch (err) {
       console.error("Error fetching products and suppliers:", err);
@@ -148,6 +182,34 @@ const SimpleQueriesPage = () => {
       console.error("Error fetching monthly revenue:", err);
     }
   };
+  const handleAddToCart = async (product) => {
+    if (user) {
+      try {
+        console.log("Product:", product); // Adăugăm un mesaj de logare pentru a verifica valorile din product
+        const token = localStorage.getItem("token");
+        await axios.post(
+          "http://localhost:3000/auth/add-to-cart",
+          {
+            produs_id: product.produs_id,
+            cantitate: 1,
+            pret_unitar: product.pret,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        addToCart(product);
+        alert("Produsul a fost adăugat în coș!");
+      } catch (err) {
+        console.error("Error adding product to cart:", err);
+        alert("A apărut o eroare la adăugarea produsului în coș.");
+      }
+    } else {
+      alert("You need to log in first!");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -165,6 +227,12 @@ const SimpleQueriesPage = () => {
                 className="text-gray-700 hover:text-blue-500 mx-4"
               >
                 Dashboard
+              </Link>
+              <Link
+                to="/cart"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                Cart
               </Link>
               <Link
                 to="/simple-queries"
@@ -214,17 +282,11 @@ const SimpleQueriesPage = () => {
         >
           Fetch Orders
         </button>
-        <QueryResult
-          title="Orders by Year"
-          data={ordersByYear}
-          renderItem={(item) => (
-            <p>
-              <strong>Order ID:</strong> {item.comanda_id},{" "}
-              <strong>Total:</strong> {item.total}, <strong>Client:</strong>{" "}
-              {item.username}
-            </p>
-          )}
-        />
+        {ordersByYear.length > 0 ? (
+          <OrdersByYearChart data={ordersByYear} />
+        ) : (
+          <p>No data available</p>
+        )}
       </div>
 
       {/* Products and Categories */}
@@ -240,7 +302,19 @@ const SimpleQueriesPage = () => {
         </button>
         <div className="flex flex-wrap justify-center">
           {productsCategories.map((product, index) => (
-            <ProductCard key={index} product={product} />
+            <ProductCard
+              key={`categories-${index}`} // Prefixăm cheia pentru unicitate
+              product={product}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Categorie: {prod.nume_categorie}</p>
+                </>
+              )}
+              onAddToCart={() => handleAddToCart(product)}
+            />
           ))}
         </div>
       </div>
@@ -256,17 +330,25 @@ const SimpleQueriesPage = () => {
         >
           Fetch Products and Suppliers
         </button>
-        <QueryResult
-          title="Products and Suppliers"
-          data={productsSuppliers}
-          renderItem={(item) => (
-            <p>
-              <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Supplier:</strong> {item.nume_furnizor}
-            </p>
-          )}
-        />
+        <div className="flex flex-wrap justify-center">
+          {productsSuppliers.map((product, index) => (
+            <ProductCard
+              key={`suppliers-${index}`} // Prefixăm cheia pentru unicitate
+              product={product} // Creăm o copie a obiectului product
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Furnizor: {prod.nume_furnizor}</p>
+                </>
+              )}
+              onAddToCart={() => handleAddToCart(product)}
+            />
+          ))}
+        </div>
       </div>
+
       {/* Clients and Orders */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-700 mb-2">
@@ -283,9 +365,8 @@ const SimpleQueriesPage = () => {
           data={clientsComands}
           renderItem={(item) => (
             <p>
-              <strong>Client:</strong> {item.username},{" "}
-              <strong>Order ID:</strong> {item.comanda_id},{" "}
-              <strong>Total:</strong> {item.total}
+              <strong>Client:</strong> {item.username}, <strong>Total:</strong>{" "}
+              {item.total}
             </p>
           )}
         />
@@ -301,17 +382,25 @@ const SimpleQueriesPage = () => {
         >
           Fetch Products and Ingredients
         </button>
+        <div className="flex flex-wrap justify-center mt-4">
+          {productsIngredients.map((product, index) => (
+            <ProductCard
+              key={`ingredients-${index}`} // Prefixăm cheia pentru unicitate
+              product={product} // Creăm o copie a obiectului product
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Ingredient: {prod.nume_ingredient}</p>
+                </>
+              )}
+              onAddToCart={() => handleAddToCart(product)}
+            />
+          ))}
+        </div>
       </div>
-      <QueryResult
-        title="Products and Ingredients"
-        data={productsIngredients}
-        renderItem={(item) => (
-          <p>
-            <strong>Product:</strong> {item.nume_produs},{" "}
-            <strong>Ingredient:</strong> {item.nume_ingredient}
-          </p>
-        )}
-      />
+
       {/* Clients with Current Month's Orders */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-700 mb-2">
@@ -352,16 +441,25 @@ const SimpleQueriesPage = () => {
         >
           Fetch Products by Category
         </button>
+        <div className="flex flex-wrap justify-center mt-4">
+          {productsByCategory.map((product, index) => (
+            <ProductCard
+              key={`category-${index}`}
+              product={product}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Price: {prod.pret}</p>
+                </>
+              )}
+              onAddToCart={() => handleAddToCart(product)}
+            />
+          ))}
+        </div>
       </div>
-      <QueryResult
-        title="Products by Category"
-        data={productsByCategory}
-        renderItem={(item) => (
-          <p>
-            <strong>Product:</strong> {item.nume_produs}
-          </p>
-        )}
-      />
+
       {/* Most Expensive Products */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-700 mb-2">
@@ -373,17 +471,25 @@ const SimpleQueriesPage = () => {
         >
           Fetch Most Expensive Products
         </button>
+        <div className="flex flex-wrap justify-center mt-4">
+          {mostExpensiveProducts.map((product, index) => (
+            <ProductCard
+              key={`expensive-${index}`}
+              product={product}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Price: {prod.pret}</p>
+                </>
+              )}
+              onAddToCart={() => handleAddToCart(product)}
+            />
+          ))}
+        </div>
       </div>
-      <QueryResult
-        title="Most Expensive Products"
-        data={mostExpensiveProducts}
-        renderItem={(item) => (
-          <p>
-            <strong>Product:</strong> {item.nume_produs},{" "}
-            <strong>Price:</strong> {item.pret}
-          </p>
-        )}
-      />
+
       {/* Top Clients */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-700 mb-2">Top Clients</h2>
@@ -393,17 +499,13 @@ const SimpleQueriesPage = () => {
         >
           Fetch Top Clients
         </button>
-      </div>
-      <QueryResult
-        title="Top Clients"
-        data={topClients}
-        renderItem={(item) => (
-          <p>
-            <strong>Client:</strong> {item.username},{" "}
-            <strong>Total Orders:</strong> {item.total_comenzi}
-          </p>
+        {topClients.length > 0 ? (
+          <TopClientsChart data={topClients} />
+        ) : (
+          <p>No data available</p>
         )}
-      />
+      </div>
+
       {/* Unsold Products */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-700 mb-2">
@@ -415,16 +517,24 @@ const SimpleQueriesPage = () => {
         >
           Fetch Unsold Products
         </button>
+        <div className="flex flex-wrap justify-center mt-4">
+          {unsoldProducts.map((product, index) => (
+            <ProductCard
+              key={`unsold-${index}`}
+              product={product}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                </>
+              )}
+              onAddToCart={() => handleAddToCart(product)}
+            />
+          ))}
+        </div>
       </div>
-      <QueryResult
-        title="Unsold Products"
-        data={unsoldProducts}
-        renderItem={(item) => (
-          <p>
-            <strong>Product:</strong> {item.nume_produs}
-          </p>
-        )}
-      />
+
       {/* Monthly Revenue */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-700 mb-2">

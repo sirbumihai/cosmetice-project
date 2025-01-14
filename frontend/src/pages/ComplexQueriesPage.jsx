@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import QueryResult from "../components/QueryResult";
 import { Link } from "react-router-dom";
+import ProductCard from "../components/ProductCard";
 
 const ComplexQueriesPage = () => {
   const [lowStockPopular, setLowStockPopular] = useState([]);
@@ -130,6 +131,12 @@ const ComplexQueriesPage = () => {
                 Dashboard
               </Link>
               <Link
+                to="/cart"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                Cart
+              </Link>
+              <Link
                 to="/simple-queries"
                 className="text-gray-700 hover:text-blue-500 mx-4"
               >
@@ -200,16 +207,22 @@ const ComplexQueriesPage = () => {
         >
           Fetch Products Bought Together
         </button>
-        <QueryResult
-          title="Products Bought Together"
-          data={productsBoughtTogether}
-          renderItem={(item) => (
-            <p>
-              <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Orders Together:</strong> {item.cumparari_impreuna}
-            </p>
-          )}
-        />
+        <div className="flex flex-wrap justify-center mt-4">
+          {productsBoughtTogether.map((product, index) => (
+            <ProductCard
+              key={`bought-together-${index}`}
+              product={{ ...product }}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Orders Together: {prod.cumparari_impreuna}</p>
+                </>
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Low Stock but Popular Products */}
@@ -230,17 +243,23 @@ const ComplexQueriesPage = () => {
         >
           Fetch Low Stock Popular Products
         </button>
-        <QueryResult
-          title="Low Stock but Popular Products"
-          data={lowStockPopular}
-          renderItem={(item) => (
-            <p>
-              <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Stock:</strong> {item.stoc}, <strong>Orders:</strong>{" "}
-              {item.numar_cumparari}
-            </p>
-          )}
-        />
+        <div className="flex flex-wrap justify-center mt-4">
+          {lowStockPopular.map((product, index) => (
+            <ProductCard
+              key={`low-stock-popular-${index}`}
+              product={{ ...product }}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Stock: {prod.stoc}</p>
+                  <p>Orders: {prod.numar_cumparari}</p>
+                </>
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Top Discount Products */}
@@ -261,16 +280,22 @@ const ComplexQueriesPage = () => {
         >
           Fetch Top Discount Products
         </button>
-        <QueryResult
-          title="Top Discount Products"
-          data={topDiscountProducts}
-          renderItem={(item) => (
-            <p>
-              <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Discount:</strong> {item.discount_maxim}%
-            </p>
-          )}
-        />
+        <div className="flex flex-wrap justify-center mt-4">
+          {topDiscountProducts.map((product, index) => (
+            <ProductCard
+              key={`top-discount-${index}`}
+              product={{ ...product }}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Discount: {prod.discount_maxim}%</p>
+                </>
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Top Products by Category */}
@@ -291,16 +316,22 @@ const ComplexQueriesPage = () => {
         >
           Fetch Top Products by Category
         </button>
-        <QueryResult
-          title="Top Products by Category"
-          data={topProductsByCategory}
-          renderItem={(item) => (
-            <p>
-              <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Orders:</strong> {item.numar_comenzi}
-            </p>
-          )}
-        />
+        <div className="flex flex-wrap justify-center mt-4">
+          {topProductsByCategory.map((product, index) => (
+            <ProductCard
+              key={`top-products-category-${index}`}
+              product={{ ...product }}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Orders: {prod.numar_comenzi}</p>
+                </>
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Low Stock Frequent */}
@@ -321,16 +352,22 @@ const ComplexQueriesPage = () => {
         >
           Fetch Low Stock Frequent
         </button>
-        <QueryResult
-          title="Low Stock Frequent"
-          data={lowStockFrequent}
-          renderItem={(item) => (
-            <p>
-              <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Orders:</strong> {item.numar_comenzi}
-            </p>
-          )}
-        />
+        <div className="flex flex-wrap justify-center mt-4">
+          {lowStockFrequent.map((product, index) => (
+            <ProductCard
+              key={`low-stock-frequent-${index}`}
+              product={{ ...product }}
+              renderItem={(prod) => (
+                <>
+                  <div className="font-bold text-lg mb-2">
+                    {prod.nume_produs}
+                  </div>
+                  <p>Orders: {prod.numar_comenzi}</p>
+                </>
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Categories Above Average */}

@@ -1,17 +1,14 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import QueryResult from "../components/QueryResult";
+import { useCart } from "../components/cartContext";
+import ProductCard from "../components/ProductCard";
 
 const Home = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [ordersClients, setOrdersClients] = useState([]);
-  const [productsCategories, setProductsCategories] = useState([]);
-  const [productsSuppliers, setProductsSuppliers] = useState([]);
-  const [ordersProducts, setOrdersProducts] = useState([]);
-  const [productsIngredients, setProductsIngredients] = useState([]);
-  const [ordersClientsProducts, setOrdersClientsProducts] = useState([]);
+  const [products, setProducts] = useState([]);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -32,46 +29,46 @@ const Home = () => {
         console.log(err);
       }
     };
-
-    const fetchData = async () => {
-      try {
-        const ordersClientsResponse = await axios.get(
-          "http://localhost:3000/auth/queries/orders-clients"
-        );
-        setOrdersClients(ordersClientsResponse.data);
-
-        const productsCategoriesResponse = await axios.get(
-          "http://localhost:3000/auth/queries/products-categories"
-        );
-        setProductsCategories(productsCategoriesResponse.data);
-
-        const productsSuppliersResponse = await axios.get(
-          "http://localhost:3000/auth/queries/products-suppliers"
-        );
-        setProductsSuppliers(productsSuppliersResponse.data);
-
-        const ordersProductsResponse = await axios.get(
-          "http://localhost:3000/auth/queries/orders-products"
-        );
-        setOrdersProducts(ordersProductsResponse.data);
-
-        const productsIngredientsResponse = await axios.get(
-          "http://localhost:3000/auth/queries/products-ingredients"
-        );
-        setProductsIngredients(productsIngredientsResponse.data);
-
-        const ordersClientsProductsResponse = await axios.get(
-          "http://localhost:3000/auth/queries/orders-clients-products"
-        );
-        setOrdersClientsProducts(ordersClientsProductsResponse.data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
+    axios
+      .get("http://localhost:3000/auth/queries/products-categories")
+      .then((response) => {
+        setProducts(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching products", error);
+      });
 
     fetchUser();
-    fetchData();
   }, [navigate]);
+
+  const handleAddToCart = async (product) => {
+    if (user) {
+      try {
+        console.log("Product:", product); // Adăugăm un mesaj de logare pentru a verifica valorile din product
+        const token = localStorage.getItem("token");
+        await axios.post(
+          "http://localhost:3000/auth/add-to-cart",
+          {
+            produs_id: product.produs_id,
+            cantitate: 1,
+            pret_unitar: product.pret,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        addToCart(product);
+        alert("Produsul a fost adăugat în coș!");
+      } catch (err) {
+        console.error("Error adding product to cart:", err);
+        alert("A apărut o eroare la adăugarea produsului în coș.");
+      }
+    } else {
+      alert("You need to log in first!");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -89,6 +86,12 @@ const Home = () => {
                 className="text-gray-700 hover:text-blue-500 mx-4"
               >
                 Dashboard
+              </Link>
+              <Link
+                to="/cart"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                Cart
               </Link>
               <Link
                 to="/simple-queries"
@@ -133,80 +136,29 @@ const Home = () => {
           ) : (
             <p className="text-lg text-gray-700">Loading...</p>
           )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.isArray(products) ? (
+              products.map((product, index) => (
+                <ProductCard
+                  key={`products-${index}`}
+                  product={product}
+                  renderItem={(prod) => (
+                    <>
+                      <h3 className="text-lg font-bold mb-2">
+                        {prod.nume_produs}
+                      </h3>
+                      <p className="text-gray-700">{prod.nume_categorie}</p>
+                      <p className="text-gray-700">{prod.pret} RON</p>
+                    </>
+                  )}
+                  onAddToCart={() => handleAddToCart(product)}
+                />
+              ))
+            ) : (
+              <p>No products available.</p>
+            )}
+          </div>
         </div>
-        <QueryResult
-          title="Orders and Clients"
-          data={ordersClients}
-          renderItem={(item) => (
-            <p>
-              <strong>Order ID:</strong> {item.comanda_id},{" "}
-              <strong>Date:</strong> {item.data_comanda},{" "}
-              <strong>Total:</strong> {item.total}, <strong>Client:</strong>{" "}
-              {item.username}, <strong>Email:</strong> {item.email}
-            </p>
-          )}
-        />
-        <QueryResult
-          title="Products and Categories"
-          data={productsCategories}
-          renderItem={(item) => (
-            <p>
-              <strong>Product ID:</strong> {item.produs_id},{" "}
-              <strong>Name:</strong> {item.nume_produs}, <strong>Price:</strong>{" "}
-              {item.pret}, <strong>Category:</strong> {item.nume_categorie}
-            </p>
-          )}
-        />
-        <QueryResult
-          title="Products and Suppliers"
-          data={productsSuppliers}
-          renderItem={(item) => (
-            <p>
-              <strong>Product ID:</strong> {item.produs_id},{" "}
-              <strong>Name:</strong> {item.nume_produs}, <strong>Price:</strong>{" "}
-              {item.pret}, <strong>Supplier:</strong> {item.nume_furnizor},{" "}
-              <strong>Email:</strong> {item.contact_email}
-            </p>
-          )}
-        />
-        <QueryResult
-          title="Orders and Products"
-          data={ordersProducts}
-          renderItem={(item) => (
-            <p>
-              <strong>Order ID:</strong> {item.comanda_id},{" "}
-              <strong>Date:</strong> {item.data_comanda},{" "}
-              <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Quantity:</strong> {item.cantitate},{" "}
-              <strong>Unit Price:</strong> {item.pret_unitar}
-            </p>
-          )}
-        />
-        <QueryResult
-          title="Products and Ingredients"
-          data={productsIngredients}
-          renderItem={(item) => (
-            <p>
-              <strong>Product ID:</strong> {item.produs_id},{" "}
-              <strong>Name:</strong> {item.nume_produs},{" "}
-              <strong>Ingredient:</strong> {item.nume_ingredient}
-            </p>
-          )}
-        />
-        <QueryResult
-          title="Orders, Clients, and Products"
-          data={ordersClientsProducts}
-          renderItem={(item) => (
-            <p>
-              <strong>Order ID:</strong> {item.comanda_id},{" "}
-              <strong>Date:</strong> {item.data_comanda},{" "}
-              <strong>Client:</strong> {item.username}, <strong>Email:</strong>{" "}
-              {item.email}, <strong>Product:</strong> {item.nume_produs},{" "}
-              <strong>Quantity:</strong> {item.cantitate},{" "}
-              <strong>Unit Price:</strong> {item.pret_unitar}
-            </p>
-          )}
-        />
       </div>
     </div>
   );

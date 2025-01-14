@@ -73,6 +73,12 @@ const Dashboard = () => {
                 Dashboard
               </Link>
               <Link
+                to="/cart"
+                className="text-gray-700 hover:text-blue-500 mx-4"
+              >
+                Cart
+              </Link>
+              <Link
                 to="/simple-queries"
                 className="text-gray-700 hover:text-blue-500 mx-4"
               >

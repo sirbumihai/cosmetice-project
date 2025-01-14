@@ -1,33 +1,32 @@
 import PropTypes from "prop-types";
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, renderItem, onAddToCart }) => {
   return (
-    <div className="w-64 h-80 rounded overflow-hidden shadow-lg m-4 flex flex-col justify-between">
-      <div className="h-2/3 w-full overflow-hidden">
+    <div className="w-64 h-96 rounded-2xl overflow-hidden shadow-lg m-4 flex flex-col justify-between bg-white">
+      <div className="h-1/2 w-full overflow-hidden">
         <img
           className="w-full h-full object-cover"
-          src={product.poza || "https://via.placeholder.com/150"} // Placeholder pentru poze lipsă
+          src={product.poza || "https://via.placeholder.com/150"} // Imagine placeholder
           alt={product.nume_produs}
         />
       </div>
-      <div className="px-4 py-2 h-1/3">
-        <div className="font-bold text-lg mb-2 text-center">
-          {product.nume_produs}
-        </div>
-        <p className="text-gray-700 text-sm">Price: ${product.pret}</p>
-        <p className="text-gray-700 text-sm">Stock: {product.stoc}</p>
+      <div className="px-4 py-6 flex flex-col justify-between h-1/2">
+        {renderItem(product)}
+        <button
+          onClick={onAddToCart} // Buton pentru a adăuga produsul în coș
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
+        >
+          Add to Cart
+        </button>
       </div>
     </div>
   );
 };
 
 ProductCard.propTypes = {
-  product: PropTypes.shape({
-    poza: PropTypes.string.isRequired,
-    nume_produs: PropTypes.string.isRequired,
-    pret: PropTypes.number.isRequired,
-    stoc: PropTypes.number.isRequired,
-  }).isRequired,
+  product: PropTypes.object.isRequired, // Detaliile produsului
+  renderItem: PropTypes.func.isRequired, // Funcție pentru conținut personalizat
+  onAddToCart: PropTypes.func.isRequired, // Funcție pentru adăugare în coș
 };
 
 export default ProductCard;

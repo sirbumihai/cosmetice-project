@@ -175,88 +175,14 @@ router.route('/dashboard/:table')
       return res.status(500).json({ message: 'Server error' });
     }
   });
-
-  router.get('/queries/orders-clients', async (req, res) => {
-    try {
-      const db = await connectToDatabase();
-      const [rows] = await db.query(`
-        SELECT comenzi.comanda_id, comenzi.data_comanda, comenzi.total, client.username, client.email
-        FROM comenzi
-        JOIN client ON comenzi.client_id = client.client_id;
-      `);
-      return res.status(200).json(rows);
-    } catch (err) {
-      return res.status(500).json({ message: 'Server error' });
-    }
-  });
-  
-  router.get('/queries/products-categories', async (req, res) => {
-    try {
-      const db = await connectToDatabase();
-      const [rows] = await db.query(`
-        SELECT produse.produs_id, produse.poza, produse.nume_produs, produse.pret, categorii.nume_categorie
-        FROM produse
-        JOIN categorii ON produse.categorie_id = categorii.categorie_id;
-      `);
-      return res.status(200).json(rows);
-    } catch (err) {
-      return res.status(500).json({ message: 'Server error' });
-    }
-  });
   
   router.get('/queries/products-suppliers', async (req, res) => {
     try {
       const db = await connectToDatabase();
       const [rows] = await db.query(`
-        SELECT produse.produs_id, produse.nume_produs, produse.pret, furnizori.nume_furnizor, furnizori.contact_email
+        SELECT produse.produs_id, produse.nume_produs, produse.pret, produse.poza, furnizori.nume_furnizor, furnizori.contact_email
         FROM produse
         JOIN furnizori ON produse.furnizori_id = furnizori.furnizori_id;
-      `);
-      return res.status(200).json(rows);
-    } catch (err) {
-      return res.status(500).json({ message: 'Server error' });
-    }
-  });
-  
-  router.get('/queries/orders-products', async (req, res) => {
-    try {
-      const db = await connectToDatabase();
-      const [rows] = await db.query(`
-        SELECT comenzi.comanda_id, comenzi.data_comanda, produse.nume_produs, produsecomenzi.cantitate, produsecomenzi.pret_unitar
-        FROM comenzi
-        JOIN produsecomenzi ON comenzi.comanda_id = produsecomenzi.comanda_id
-        JOIN produse ON produsecomenzi.produs_id = produse.produs_id;
-      `);
-      return res.status(200).json(rows);
-    } catch (err) {
-      return res.status(500).json({ message: 'Server error' });
-    }
-  });
-  
-  router.get('/queries/products-ingredients', async (req, res) => {
-    try {
-      const db = await connectToDatabase();
-      const [rows] = await db.query(`
-        SELECT produse.produs_id, produse.nume_produs, ingrediente.nume_ingredient
-        FROM produse
-        JOIN produseingrediente ON produse.produs_id = produseingrediente.produs_id
-        JOIN ingrediente ON produseingrediente.ingredient_id = ingrediente.ingredient_id;
-      `);
-      return res.status(200).json(rows);
-    } catch (err) {
-      return res.status(500).json({ message: 'Server error' });
-    }
-  });
-  
-  router.get('/queries/orders-clients-products', async (req, res) => {
-    try {
-      const db = await connectToDatabase();
-      const [rows] = await db.query(`
-        SELECT comenzi.comanda_id, comenzi.data_comanda, client.username, client.email, produse.nume_produs, produsecomenzi.cantitate, produsecomenzi.pret_unitar
-        FROM comenzi
-        JOIN client ON comenzi.client_id = client.client_id
-        JOIN produsecomenzi ON comenzi.comanda_id = produsecomenzi.comanda_id
-        JOIN produse ON produsecomenzi.produs_id = produse.produs_id;
       `);
       return res.status(200).json(rows);
     } catch (err) {
@@ -269,7 +195,7 @@ router.get('/queries/products-categories', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT produse.nume_produs, categorii.nume_categorie
+      SELECT produse.produs_id, produse.nume_produs, produse.pret, produse.poza, categorii.nume_categorie
       FROM produse
       JOIN categorii ON produse.categorie_id = categorii.categorie_id;
     `);
@@ -284,7 +210,7 @@ router.get('/queries/products-suppliers', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT produse.nume_produs, furnizori.nume_furnizor
+      SELECT produse.nume_produs, produse.poza, furnizori.nume_furnizor
       FROM produse
       JOIN furnizori ON produse.furnizori_id = furnizori.furnizori_id;
     `);
@@ -314,7 +240,7 @@ router.get('/queries/products-ingredients', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT produse.nume_produs, ingrediente.nume_ingredient
+      SELECT produse.nume_produs, produse.poza, ingrediente.nume_ingredient
       FROM produse
       JOIN produseingrediente ON produse.produs_id = produseingrediente.produs_id
       JOIN ingrediente ON produseingrediente.ingredient_id = ingrediente.ingredient_id;
@@ -352,7 +278,7 @@ router.get('/queries/products-by-category', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT produse.nume_produs, produse.pret
+      SELECT produse.nume_produs, produse.poza, produse.pret
       FROM produse
       JOIN categorii ON produse.categorie_id = categorii.categorie_id
       WHERE categorii.nume_categorie = ?;
@@ -368,7 +294,7 @@ router.get('/queries/most-expensive-products', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT produse.nume_produs, categorii.nume_categorie, produse.pret
+      SELECT produse.nume_produs, produse.poza, categorii.nume_categorie, produse.pret
       FROM produse
       JOIN categorii ON produse.categorie_id = categorii.categorie_id
       WHERE produse.pret = (
@@ -406,7 +332,7 @@ router.get('/queries/unsold-products', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT produse.nume_produs
+      SELECT produse.nume_produs, produse.poza
       FROM produse
       LEFT JOIN produsecomenzi ON produse.produs_id = produsecomenzi.produs_id
       WHERE produsecomenzi.produs_id IS NULL;
@@ -484,7 +410,7 @@ router.get('/queries/products-bought-together', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT p.nume_produs, COUNT(pc2.produs_id) AS cumparari_impreuna
+      SELECT p.nume_produs, p.poza, COUNT(pc2.produs_id) AS cumparari_impreuna
       FROM produsecomenzi pc1
       JOIN produsecomenzi pc2 ON pc1.comanda_id = pc2.comanda_id AND pc1.produs_id != pc2.produs_id
       JOIN produse p ON pc2.produs_id = p.produs_id
@@ -509,7 +435,7 @@ router.get('/queries/popular-low-stock', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT p.nume_produs, p.stoc, COUNT(pc.produs_id) AS numar_cumparari
+      SELECT p.nume_produs, p.poza, p.stoc, COUNT(pc.produs_id) AS numar_cumparari
       FROM produse p
       JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
       WHERE p.stoc < ?
@@ -529,7 +455,7 @@ router.get('/queries/top-discount-products', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT p.nume_produs, MAX(pc.discount) AS discount_maxim
+      SELECT p.nume_produs, p.poza, MAX(pc.discount) AS discount_maxim
       FROM produse p
       JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
       JOIN categorii c ON p.categorie_id = c.categorie_id
@@ -550,7 +476,7 @@ router.get('/queries/top-products-by-category', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT p.nume_produs, COUNT(pc.comanda_id) AS numar_comenzi
+      SELECT p.nume_produs, p.poza, COUNT(pc.comanda_id) AS numar_comenzi
       FROM produse p
       JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
       WHERE pc.comanda_id IN (
@@ -577,7 +503,7 @@ router.get('/queries/low-stock-frequent', async (req, res) => {
   try {
     const db = await connectToDatabase();
     const [rows] = await db.query(`
-      SELECT p.nume_produs, COUNT(pc.comanda_id) AS numar_comenzi
+      SELECT p.nume_produs,p.poza, COUNT(pc.comanda_id) AS numar_comenzi
       FROM produse p
       JOIN produsecomenzi pc ON p.produs_id = pc.produs_id
       WHERE p.stoc < ?
@@ -619,5 +545,295 @@ router.get('/queries/categories-above-average', async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+// Adăugarea produsului în coș și crearea unei comenzi cu status "in procesare"
+router.post('/add-to-cart', verifyToken, async (req, res) => {
+  const { produs_id, cantitate, pret_unitar } = req.body;
+  const client_id = req.userId; // Obținem client_id din token
+
+  if (!produs_id || !cantitate || !pret_unitar) {
+    return res.status(400).json({ message: 'produs_id, cantitate, and pret_unitar are required' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+
+    // Verificăm stocul produsului
+    const [product] = await db.query(`SELECT stoc FROM produse WHERE produs_id = ?`, [produs_id]);
+    if (product.length === 0) {
+      return res.status(404).json({ message: 'Produsul nu a fost găsit' });
+    }
+    if (product[0].stoc < cantitate) {
+      return res.status(400).json({ message: 'Cantitatea depășește stocul disponibil' });
+    }
+
+    // Verificăm dacă există o comandă nefinalizată pentru acest client
+    let [existingOrder] = await db.query(`
+      SELECT comanda_id FROM comenzi WHERE client_id = ? AND status_comanda = 'in procesare'`, [client_id]);
+
+    if (existingOrder.length === 0) {
+      // Dacă nu există, creăm o comandă nefinalizată
+      const [result] = await db.query(`
+        INSERT INTO comenzi (client_id, data_comanda, total, status_comanda)
+        VALUES (?, NOW(), 0, 'in procesare')`, [client_id]);
+      existingOrder = [{ comanda_id: result.insertId }];
+    }
+
+    const comanda_id = existingOrder[0].comanda_id;
+
+    // Verificăm dacă produsul este deja în coș pentru această comandă
+    const [existingProduct] = await db.query(`
+      SELECT * FROM produsecomenzi WHERE comanda_id = ? AND produs_id = ?`, [comanda_id, produs_id]);
+
+    if (existingProduct.length > 0) {
+      // Dacă există, actualizăm cantitatea
+      await db.query(`
+        UPDATE produsecomenzi SET cantitate = cantitate + ? WHERE comanda_id = ? AND produs_id = ?`,
+        [cantitate, comanda_id, produs_id]);
+      console.log(`Updated product ${produs_id} in cart for order ${comanda_id}`); // Mesaj de logare pentru actualizarea produsului
+    } else {
+      // Dacă nu există, adăugăm produsul în coș
+      await db.query(`
+        INSERT INTO produsecomenzi (comanda_id, produs_id, cantitate, pret_unitar)
+        VALUES (?, ?, ?, ?)`, [comanda_id, produs_id, cantitate, pret_unitar]);
+      console.log(`Added product ${produs_id} to cart for order ${comanda_id}`); // Mesaj de logare pentru adăugarea produsului
+    }
+
+    res.status(200).json({ message: 'Produsul a fost adăugat în coș!' });
+  } catch (err) {
+    console.error("Error adding product to cart:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Plasarea comenzii și schimbarea statusului în "livrat"
+router.post('/place-order', verifyToken, async (req, res) => {
+  const client_id = req.userId; // Obținem client_id din token
+
+  try {
+    const db = await connectToDatabase();
+
+    // Obținem comanda nefinalizată pentru acest client
+    const [existingOrder] = await db.query(`
+      SELECT comanda_id, total FROM comenzi WHERE client_id = ? AND status_comanda = 'in procesare'`, [client_id]);
+
+    if (existingOrder.length === 0) {
+      return res.status(400).json({ message: 'Nu există nicio comandă în procesare!' });
+    }
+
+    const comanda_id = existingOrder[0].comanda_id;
+    const total = existingOrder[0].total;
+
+    // Verificăm stocul produselor din coș
+    const [cartItems] = await db.query(`
+      SELECT produsecomenzi.produs_id, produsecomenzi.cantitate, produse.stoc
+      FROM produsecomenzi
+      JOIN produse ON produsecomenzi.produs_id = produse.produs_id
+      WHERE produsecomenzi.comanda_id = ?`, [comanda_id]);
+
+    for (const item of cartItems) {
+      if (item.cantitate > item.stoc) {
+        return res.status(400).json({ message: `Stoc insuficient pentru produsul ${item.produs_id}` });
+      }
+    }
+
+    // Reducem stocul pentru fiecare produs comandat
+    for (const item of cartItems) {
+      const newStock = item.stoc - item.cantitate;
+      await db.query(`
+        UPDATE produse SET stoc = ? WHERE produs_id = ?`, [newStock, item.produs_id]);
+    }
+
+    // Schimbăm statusul comenzii în "livrat"
+    await db.query(`
+      UPDATE comenzi SET status_comanda = 'livrat' WHERE comanda_id = ?`, [comanda_id]);
+
+    res.status(200).json({ message: 'Comanda a fost livrată cu succes!' });
+  } catch (err) {
+    console.error("Error placing order:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Obținerea produselor din coș pentru această comandă
+router.get('/cart', verifyToken, async (req, res) => {
+  const client_id = req.userId; // Obținem client_id din token
+
+  try {
+    const db = await connectToDatabase();
+
+    // Obținem comanda nefinalizată pentru acest client
+    const [existingOrder] = await db.query(`
+      SELECT comanda_id FROM comenzi WHERE client_id = ? AND status_comanda = 'in procesare'`, [client_id]);
+
+    console.log("Existing Order:", existingOrder); // Adăugăm un mesaj de logare pentru a verifica existența comenzii nefinalizate
+
+    if (existingOrder.length === 0) {
+      console.log("No unfinished order found for client:", client_id); // Mesaj de logare dacă nu există o comandă nefinalizată
+      return res.status(200).json([]); // Dacă nu există o comandă nefinalizată, returnăm un coș gol
+    }
+
+    const comanda_id = existingOrder[0].comanda_id;
+
+    // Obținem produsele din coș pentru această comandă
+    const [cartItems] = await db.query(`
+      SELECT produsecomenzi.produs_id, produse.nume_produs, produse.pret AS pret_unitar, produse.poza, produsecomenzi.cantitate
+      FROM produsecomenzi
+      JOIN produse ON produsecomenzi.produs_id = produse.produs_id
+      WHERE produsecomenzi.comanda_id = ?`, [comanda_id]);
+
+    console.log("Cart Items from DB:", cartItems); // Adăugăm un mesaj de logare pentru a verifica datele din DB
+    res.status(200).json(cartItems);
+  } catch (err) {
+    console.error("Error fetching cart items:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Ștergerea unui produs din coș
+router.delete('/cart/:produs_id', verifyToken, async (req, res) => {
+  const client_id = req.userId; // Obținem client_id din token
+  const { produs_id } = req.params;
+
+  try {
+    const db = await connectToDatabase();
+
+    // Obținem comanda nefinalizată pentru acest client
+    const [existingOrder] = await db.query(`
+      SELECT comanda_id FROM comenzi WHERE client_id = ? AND status_comanda = 'in procesare'`, [client_id]);
+
+    if (existingOrder.length === 0) {
+      return res.status(400).json({ message: 'Nu există nicio comandă în procesare!' });
+    }
+
+    const comanda_id = existingOrder[0].comanda_id;
+
+    // Ștergem produsul din coș
+    await db.query(`
+      DELETE FROM produsecomenzi WHERE comanda_id = ? AND produs_id = ?`, [comanda_id, produs_id]);
+
+    // Recalculăm totalul comenzii
+    const [updatedCartItems] = await db.query(`
+      SELECT SUM(cantitate * pret_unitar) AS total FROM produsecomenzi WHERE comanda_id = ?`, [comanda_id]);
+    const total = updatedCartItems[0].total || 0;
+
+    // Actualizăm totalul comenzii
+    await db.query(`
+      UPDATE comenzi SET total = ? WHERE comanda_id = ?`, [total, comanda_id]);
+
+    res.status(200).json({ message: 'Produsul a fost șters din coș!' });
+  } catch (err) {
+    console.error("Error deleting product from cart:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+// Actualizarea cantității unui produs din coș
+router.put('/cart/:produs_id', verifyToken, async (req, res) => {
+  const client_id = req.userId; // Obținem client_id din token
+  const { produs_id } = req.params;
+  const { cantitate } = req.body;
+
+  if (!cantitate || cantitate <= 0) {
+    return res.status(400).json({ message: 'Cantitatea trebuie să fie mai mare decât 0' });
+  }
+
+  try {
+    const db = await connectToDatabase();
+
+    // Verificăm stocul produsului
+    const [product] = await db.query(`SELECT stoc FROM produse WHERE produs_id = ?`, [produs_id]);
+    if (product.length === 0) {
+      return res.status(404).json({ message: 'Produsul nu a fost găsit' });
+    }
+    if (product[0].stoc < cantitate) {
+      return res.status(400).json({ message: 'Cantitatea depășește stocul disponibil' });
+    }
+
+    // Obținem comanda nefinalizată pentru acest client
+    const [existingOrder] = await db.query(`
+      SELECT comanda_id FROM comenzi WHERE client_id = ? AND status_comanda = 'in procesare'`, [client_id]);
+
+    if (existingOrder.length === 0) {
+      return res.status(400).json({ message: 'Nu există nicio comandă în procesare!' });
+    }
+
+    const comanda_id = existingOrder[0].comanda_id;
+
+    // Actualizăm cantitatea produsului din coș
+    await db.query(`
+      UPDATE produsecomenzi SET cantitate = ? WHERE comanda_id = ? AND produs_id = ?`, [cantitate, comanda_id, produs_id]);
+
+    // Recalculăm totalul comenzii
+    const [updatedCartItems] = await db.query(`
+      SELECT SUM(cantitate * pret_unitar) AS total FROM produsecomenzi WHERE comanda_id = ?`, [comanda_id]);
+    const total = updatedCartItems[0].total;
+
+    // Actualizăm totalul comenzii
+    await db.query(`
+      UPDATE comenzi SET total = ? WHERE comanda_id = ?`, [total, comanda_id]);
+
+    res.status(200).json({ message: 'Cantitatea produsului a fost actualizată!' });
+  } catch (err) {
+    console.error("Error updating product quantity:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+router.get('/orders', verifyToken, async (req, res) => {
+  const client_id = req.userId; // Obținem client_id din token
+
+  try {
+    const db = await connectToDatabase();
+    const [orders] = await db.query(`
+      SELECT comanda_id, data_comanda, total, status_comanda
+      FROM comenzi WHERE client_id = ?`, [client_id]);
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'Nu aveți comenzi plasate' });
+    }
+
+    res.status(200).json(orders);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+router.get('/order/:comanda_id', verifyToken, async (req, res) => {
+  const { comanda_id } = req.params;
+  const client_id = req.userId; // Obținem client_id din token
+
+  try {
+    const db = await connectToDatabase();
+    const [order] = await db.query(`
+      SELECT comenzi.comanda_id, comenzi.data_comanda, comenzi.total, comenzi.status_comanda
+      FROM comenzi WHERE comanda_id = ? AND client_id = ?`, [comanda_id, client_id]);
+
+    if (order.length === 0) {
+      return res.status(404).json({ message: 'Comanda nu a fost găsită' });
+    }
+
+    // Obținem produsele din acea comandă
+    const [orderItems] = await db.query(`
+      SELECT produse.nume_produs, produse.poza, produsecomenzi.cantitate, produsecomenzi.pret_unitar
+      FROM produsecomenzi
+      JOIN produse ON produsecomenzi.produs_id = produse.produs_id
+      WHERE produsecomenzi.comanda_id = ?`, [comanda_id]);
+
+    res.status(200).json({ order: order[0], items: orderItems });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+router.get('/simple-queries', verifyToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    // Exemplu de interogare simplă
+    const [rows] = await db.query(`
+      SELECT * FROM produse LIMIT 10
+    `);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error("Error fetching simple queries:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 
 export default router;
